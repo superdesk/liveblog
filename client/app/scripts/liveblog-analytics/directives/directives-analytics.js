@@ -12,13 +12,15 @@ export default function lbAnalyticsListCtrl($scope, $element) {
         return $scope.reverse && $scope.predicate === predicate;
     };
 
+
     $scope.setPage = function($index) {
         $scope.currentPage = $index;
     };
-
+    $scope.flag = false;
     $scope.pageSize = 25;
     $scope.currentPage = 0;
-    $scope.pages = new Array(Math.ceil($scope.analytics._items.length / $scope.pageSize));
+
+    $scope.pages = new Array(Math.ceil($scope.analytics.length / $scope.pageSize));
 
     return null;
 }

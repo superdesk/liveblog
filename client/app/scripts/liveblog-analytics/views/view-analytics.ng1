@@ -34,11 +34,11 @@
                         <h2 translate>Embeds</h2>
                     </div>
                     <div class="content content--analytics">
-                        <div ng-if="analytics_data">                            
-                            <button class="btn btn--primary pull-right mod--absoluteright" ng-click="" translate="">
-                                <span class="ng-scope" ng-click="analytics.downloadCSV()">Download CSV</span>
-                            </button>
-                            <lb-analytics-list showSourceBadge="false" loadMore="loadMore()"" analytics="analytics_data"></lb-analytics-list>
+                        <div ng-if="analytics_data">
+                            <lb-analytics-list analytics-fn="loadAnalytics(arg1, arg2,arg3,arg4)" showSourceBadge="false" loadMore="loadMore()"" analytics="analytics_data" downloadcsv-fn="downloadCSV()"></lb-analytics-list>
+                        </div>
+                        <div ng-if="analytics_data.length === 0">
+                            NO RECORDS!
                         </div>
                     </div>
                 </div>

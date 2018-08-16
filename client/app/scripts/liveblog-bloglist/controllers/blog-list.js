@@ -116,6 +116,41 @@ export default function BlogListController(
             });
     };
 
+    $scope.getAnalytics = function() {
+        $scope.viewAnalytics = !$scope.viewAnalytics;
+        $scope.loadAnalytics = function() {
+            $http({
+                url: config.server.url + '/bloganalytics/' + $scope.activeState.name,
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json;charset=utf-8',
+                },
+            })
+                .then((response) => {
+                    if (response.data.length > 0) {
+                        $scope.analytics_data = response.data;
+                    }
+                });
+        };
+        if ($scope.viewAnalytics)
+            $scope.loadAnalytics();
+    };
+
+    $scope.openBlogAnalytics = function(blogId) {
+        $location.path('/liveblog/analytics/' + blogId.$oid);
+    };
+
+    $scope.predicate = '';
+
+    $scope.order = function(predicate) {
+        $scope.reverse = $scope.predicate === predicate ? !$scope.reverse : false;
+        $scope.predicate = predicate;
+    };
+
+    $scope.isReversePredicate = function(predicate) {
+        return $scope.reverse && $scope.predicate === predicate;
+    };
+
     $scope.cancelEmbed = function() {
         $scope.embedModal = false;
     };

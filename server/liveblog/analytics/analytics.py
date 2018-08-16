@@ -8,7 +8,8 @@ from flask import make_response
 from bson import ObjectId
 import logging
 import json
-from eve.utils import config
+import datetime
+from bson.json_util import dumps
 
 logger = logging.getLogger('superdesk')
 
@@ -17,8 +18,14 @@ CORS(analytics_blueprint)
 
 analytics_schema = {
     'blog_id': Resource.rel('blogs', embeddable=True, required=True, type="objectid"),
-    'context_url': {
+    'website_url': {
         'type': 'string',
+    },
+    'contexturl': {
+        'type': 'string',
+    },
+    'updated': {
+        'type': 'datetime',
     },
     'hits': {
         'type': 'integer'
@@ -42,26 +49,107 @@ class AnalyticsService(BaseService):
     notification_key = 'analytics'
 
 
-class BlogAnalyticsResource(Resource):
-    url = 'blogs/<regex("[a-f0-9]{24}"):blog_id>/bloganalytics'
-    schema = analytics_schema
-    config.PAGINATION_LIMIT = 500
-    datasource = {
-        'source': 'analytics'
-    }
-    resource_methods = ['GET']
+@analytics_blueprint.route('/api/blogs/<blog_id>/<sort_type>/bloganalytics', methods=['GET'])
+def get_analytics(blog_id, sort_type):
+    website_url = request.args.get('websiteUrl')
+
+    start = datetime.datetime.now() - datetime.timedelta(days=7)
+
+    if sort_type == 'month':
+        start = datetime.datetime.now() - datetime.timedelta(days=30)
+    elif sort_type == 'year':
+        start = datetime.datetime.now() - datetime.timedelta(days=365)
+
+    db_client = app.data.mongo.pymongo('analytics').db['analytics']
+
+    if website_url:
+        response_data = dumps(db_client.find({
+            "blog_id": ObjectId(blog_id),
+            "website_url": website_url,
+            "updated": {"$gte": start}
+        }).limit(500))
+    else:
+        response_data = dumps(
+            db_client.aggregate([
+                {
+                    "$match":
+                    {
+                        "blog_id": ObjectId(blog_id),
+                        "website_url": {"$exists": True},
+                    }
+                },
+                {
+                    "$group":
+                    {
+                        "_id": {"website_url": "$website_url"},
+                        "hits": {"$sum": "$hits"}
+                    }
+                }
+            ])
+        )
+        limit = 500 - len(json.loads(response_data))
+        limit = limit if limit > 0 else 500
+        response_without_domain = dumps(
+            db_client.find({
+                "blog_id": ObjectId(blog_id),
+                "website_url": {"$exists": False}
+            }).limit(limit)
+        )
+        response_data = dumps(json.loads(response_data) + json.loads(response_without_domain))
+
+    return make_response(response_data, 200)
 
 
-class BlogAnalyticsService(BaseService):
-    notification_key = 'blog_analytics'
+@analytics_blueprint.route('/api/bloganalytics/<blog_state>', methods=['GET'])
+def get_blog_analytics(blog_state):
+    db_client = app.data.mongo.pymongo('analytics').db['analytics']
+
+    if blog_state == 'active':
+        blog_status = 'open'
+    else:
+        blog_status = 'closed'
+
+    response_data = dumps(
+        db_client.aggregate([
+            {
+                "$sort": {"updated": -1},
+            },
+            {
+                "$group":
+                {
+                    "_id": {"blog_id": "$blog_id"},
+                    "hits": {"$sum": "$hits"},
+                    "updated": {"$first": "$updated"},
+                    "website_count": {"$sum": 1},
+                }
+            },
+            {
+                "$lookup":
+                {
+                    "from": "blogs",
+                    "localField": "_id.blog_id",
+                    "foreignField": "_id",
+                    "as": "blog_details",
+                }
+            },
+            {
+                "$match":
+                {
+                    "blog_details.blog_status": blog_status,
+                }
+            }
+        ])
+    )
+
+    return make_response(response_data, 200)
 
 
 @analytics_blueprint.route('/api/analytics/hit', methods=['POST'])
 def analytics_hit():
     data = request.get_json()
     context_url = data['context_url']
+    website_url = data['website_url']
     blog_id = data['blog_id']
-
     # check ip of origin of request
     # request may have been forwarded by proxy
     if 'X-Forwarded-For' in request.headers:
@@ -92,6 +180,7 @@ def analytics_hit():
     # if ip is new and blog exists, add a record of a hit in db
     client = app.data.mongo.pymongo('analytics').db['analytics']
     # use upsert to be thread safe (upsert updates the record if it exists, or else creates it)
-    client.update({'blog_id': ObjectId(blog_id), 'context_url': context_url}, {"$inc": {"hits": 1}}, True)
+    client.update({'blog_id': ObjectId(blog_id), 'website_url': website_url, 'context_url': context_url}, {
+        "$set": {"updated": datetime.datetime.now()}, "$inc": {"hits": 1}}, upsert=True)
 
     return make_response('success', 200)

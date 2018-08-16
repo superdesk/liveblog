@@ -40,9 +40,12 @@
                 <i class="icon-link"></i>
             </button>
         </div>
+        <div class="view-select pull-left">
+            <button type="btn" ng-click="getAnalytics()">ANALYTICS</button>
+        </div>
         <div sd-pagination data-items="blogs" data-limit="25" class="pull-right"></div>
     </header>
-    <div class="list-container">
+    <div class="list-container" ng-if="!viewAnalytics">
         <div ng-if="blogsLoading" class="loading-indicator" style="margin-top: 30px;"><span translate>Loading blogs...</span></div>
         <!-- empty state -->
         <div ng-if="blogs._meta.total === 0" class="empty-state">
@@ -86,7 +89,7 @@
                     <h3>{{ ::blog.title }}</h3>
                     <div class="description">{{ ::blog.description | htmlToPlaintext }}</div>
                 </div>
-                <div class="footer"> 
+                <div class="footer">
                     <dl>
                         <dt>{{ ::'Blog owner' | translate }}:</dt>
                         <dd>{{ ::blog.original_creator | username }}</dd>
@@ -112,6 +115,53 @@
                         <div ng-if="blog.market_enabled" class="state-label state-published state-label--no-float" translate>PUBLIC</div>
                         <div ng-if="!blog.market_enabled" translate>PRIVATE</div>
                         </dd>
+                    </dl>
+                </div>
+            </li>
+        </ul>
+    </div>
+    <div class="list-container" ng-if="viewAnalytics">
+        <div>
+            <button class="orderby__button" ng-class="{
+              'orderby__button--reverse': isReversePredicate('hits'),
+              'orderby__button--active' : predicate == 'hits'
+            }" ng-click="order('hits')">Most Clicked</button>
+            <button class="orderby__button" ng-class="{
+              'orderby__button--reverse': isReversePredicate('updated.$date'),
+              'orderby__button--active' : predicate == 'updated.$date'
+            }" ng-click="order('updated.$date')">Most Recent</button>
+        </div>
+        <table class="row-list table table-striped" ng-if="blogsView === 'list'">
+            <tbody>
+                <tr ng-repeat="analytics in analytics_data | orderBy: predicate:reverse">
+                    <td>{{analytics.blog_details[0].title}}
+                        <h3>{{ ::analytics.blog_details[0].title }}</h3>
+                        <div class="description">{{ ::analytics.blog_details[0].description | htmlToPlaintext }}</div>
+                        <div>
+                            {{ ::'No. of Hits' | translate}} {{ ::analytics.hits}},
+                            {{ ::'Websites' | translate }} {{ ::analytics.website_count}}.
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <ul class="card-list" ng-if="blogsView === 'grid'">
+            <li ng-repeat="analytics in analytics_data | orderBy: predicate:reverse" ng-click="openBlogAnalytics(analytics.blog_details[0]._id)">
+                <figure class="media">
+                    <div ng-if="analytics.blog_details[0].picture_url" if-background-image="{{analytics.blog_details[0].picture_url}}"></div>
+                </figure>
+                <div class="content">
+                    <h3>{{ ::analytics.blog_details[0].title }}</h3>
+                    <div class="description">{{ ::analytics.blog_details[0].description | htmlToPlaintext }}</div>
+                </div>
+                <div class="footer">
+                    <dl>
+                        <dt>{{ ::'No. of hits' | translate}}:</dt>
+                        <dd>{{::analytics.hits}}</dd>
+                        <dt>{{::'Websites' | translate}}:</dt>
+                        <dd>{{::analytics.website_count}}</dd>
+                        <dt>{{ ::'Last hit' | translate}}:</dt>
+                        <dd><time datetime="{{ analytics.updated}}">{{ analytics.updated.$date | reldate }}</time></dd>
                     </dl>
                 </div>
             </li>

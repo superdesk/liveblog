@@ -1,36 +1,48 @@
-liveblogAnalyticsController.$inject = ['$scope', '$location', 'api', 'analytics', 'blog', 'notify'];
+liveblogAnalyticsController.$inject = ['$scope', '$http', 'config', '$location', 'api', 'analytics', 'blog', 'notify'];
 
-function liveblogAnalyticsController($scope, $location, api, analytics, blog, notify) {
+function liveblogAnalyticsController($scope, $http, config, $location, api, analytics, blog, notify) {
     const self = this;
-
     const close = function() { // Return to blog list page
         $location.path('/liveblog/edit/' + blog._id);
     };
 
-    const loadAnalytics = function(page = 1) {
+    $scope.loadAnalytics = function(sortType, websiteUrl, page = 1, isDetail = false) {
         const q = {page: page, max_results: 500};
 
-        api('blogs/<regex("[a-f0-9]{24}"):blog_id>/bloganalytics', {_id: blog._id})
-            .query(q)
-            .then((data) => {
-                if (q.page === 1) {
-                    $scope.analytics_data = data;
+        if (websiteUrl) {
+            localStorage.setItem('websiteUrl', websiteUrl);
+        }
+        if (!isDetail)
+            localStorage.removeItem('websiteUrl');
+
+        $http({
+            url: config.server.url + '/blogs/' + blog._id + '/' + sortType + '/bloganalytics',
+            method: 'GET',
+            params: {q: q, websiteUrl: localStorage.getItem('websiteUrl')},
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8',
+            },
+        })
+            .then((response) => {
+                if (response.data.length > 0) {
+                    if (response.config.params.q.page === 1) {
+                        $scope.analytics_data = response.data;
+                    } else {
+                        $scope.analytics_data.concat(response.data);
+                    }
                 } else {
-                    $scope.analytics_data._items.concat(data._items);
-                }
-                if (data._links.next) {
-                    loadAnalytics(q.page + 1);
+                    $scope.analytics_data = [];
                 }
             });
     };
 
-    const downloadCSV = function() { // Convert relevant item fields to CSV
+    $scope.downloadCSV = function() { // Convert relevant item fields to CSV
         let fileContent = '';
         const filename = `liveblog_analytics_${blog._id}`;
 
-        $scope.analytics_data._items.forEach((arr, index) => {
-            const item = $scope.analytics_data._items[index];
-            const filtered = [item.blog_id, item.context_url, item.hits];
+        $scope.analytics_data.forEach((arr, index) => {
+            const item = $scope.analytics_data[index];
+            const filtered = [item.blog_id, item.context_url, item.website_url, item.hits];
 
             fileContent += filtered.join(',') + '\n';
         });
@@ -59,13 +71,12 @@ function liveblogAnalyticsController($scope, $location, api, analytics, blog, no
         link.click();
     };
 
-    loadAnalytics(); // load all, calls aren't expensive
+    $scope.loadAnalytics('year', null); // load all, calls aren't expensive
 
     angular.extend(self, {
         blog: blog,
         close: close,
         tab: 'embeds',
-        downloadCSV: downloadCSV,
         changeTab: function(tab) {
             self.tab = tab;
         },

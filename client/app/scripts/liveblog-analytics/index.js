@@ -28,10 +28,37 @@ export default angular
         restrict: 'E',
         scope: {
             analytics: '=',
+            analyticsDetail: '&analyticsFn',
+            downloadCSV: '&downloadcsvFn',
         },
         templateUrl: analiticsListTpl,
         controllerAs: 'analyticsList',
         controller: lbAnalyticsListCtrl,
+        link: function(scope, element, attrs) {
+            scope.$watch('analytics', (newValue, oldValue) => {
+                if (newValue != oldValue) {
+                    scope.setPage = function($index) {
+                        scope.currentPage = $index;
+                    };
+
+                    scope.pageSize = 25;
+                    scope.currentPage = 0;
+                    scope.pages = new Array(Math.ceil(scope.analytics.length / scope.pageSize));
+                }
+            });
+
+            scope.fetchAnalyticsDetail = function(sortType, websiteUrl, page, isDetail) {
+                scope.flag = true;
+
+                if (!isDetail)
+                    scope.flag = false;
+
+                scope.analyticsDetail({arg1: sortType, arg2: websiteUrl, arg3: page, arg4: isDetail});
+            };
+            scope.callDownloadCSV = function() {
+                scope.downloadCSV();
+            };
+        },
     }))
 
     .filter('startFrom', () => function(input, start) {

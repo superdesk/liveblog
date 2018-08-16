@@ -1,26 +1,75 @@
-<input ng-model="analyticsSearch.context_url" placeholder="Filter referrers">
+<div ng-if="flag" >
+
+  <div class="list-pane">
+    <div class="subnav">
+      <div class="button-list">
+        <button type="button" class="toggle-button" ng-class="{'toggle-button--active': type === 'week'}" ng-click="fetchAnalyticsDetail('week', null, 1, true); type='week'">WEEK</button>
+        <button type="button" class="toggle-button" ng-class="{'toggle-button--active': type === 'month'}" ng-click="fetchAnalyticsDetail('month', null, 1, true); type='month'">MONTH</button>
+        <button type="button" class="toggle-button" ng-class="{'toggle-button--active': type === 'year' || !type}" ng-click="fetchAnalyticsDetail('year', null, 1, true); type='year'">YEAR</button>
+        <button class="btn btn--primary" ng-click="fetchAnalyticsDetail('year', null, 1, false)">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn--primary pull-right mod--absoluteright" ng-click="" translate="">
+    <span class="ng-scope" ng-click="callDownloadCSV()">Download CSV</span>
+  </button>
+
+  <input ng-model="analyticsSearch.context_url" placeholder="Filter referrers">
 
 <!--  |  -->
-<div class="analytics-list">
-  <div class="analytics-list-table">
-    <!-- Header -->
-    <div class="analytics-list-row analytics-list-row--header">
-      <div class="analytics-list-row-item orderby__button" ng-class="{
-        'orderby__button--reverse': isReversePredicate('context_url'),
-        'orderby__button--active' : predicate == 'context_url'
-      }" ng-click="order('context_url')">Blog referrer URL</div>
-      <div class="analytics-list-row-item orderby__button" ng-class="{
-        'orderby__button--reverse': isReversePredicate('hits'),
-        'orderby__button--active' : predicate == 'hits'
-      }" ng-click="order('hits')">Hit count</div>
+  <div class="analytics-list">
+    <div class="analytics-list-table">
+      <!-- Header -->
+      <div class="analytics-list-row analytics-list-row--header">
+        <div class="analytics-list-row-item orderby__button" ng-class="{
+          'orderby__button--reverse': isReversePredicate('context_url'),
+          'orderby__button--active' : predicate == 'context_url'
+        }" ng-click="order('context_url')">Blog referrer URL</div>
+        <div class="analytics-list-row-item orderby__button" ng-class="{
+          'orderby__button--reverse': isReversePredicate('hits'),
+          'orderby__button--active' : predicate == 'hits'
+        }" ng-click="order('hits')">Hit count</div>
+      </div>
+      <div ng-repeat="item in analytics | orderBy:predicate:reverse | filter:analyticsSearch | startFrom:currentPage*pageSize | limitTo:pageSize track by ( item._id + $index)" class="analytics-list-row">
+        <div class="analytics-list-row-item" lb-filter-domain>{{item.context_url}}</div>
+        <div class="analytics-list-row-item">{{item.hits}}</div>
+      </div>
     </div>
-    <!-- Repeatable row -->
-    <div ng-repeat="item in analytics._items | orderBy:predicate:reverse | filter:analyticsSearch | startFrom:currentPage*pageSize | limitTo:pageSize track by item._id" class="analytics-list-row">
-      <div class="analytics-list-row-item" lb-filter-domain>{{item.context_url}}</div>
-      <div class="analytics-list-row-item">{{item.hits}}</div>
+  </div>
+  </div>
+</div>
+
+<div ng-if="!flag">
+  
+  <input ng-model="analyticsSearch._id" placeholder="Filter referrers">
+
+  <!--  |  -->
+  <div class="analytics-list">
+    <div class="analytics-list-table">
+      <!-- Header -->
+      <div class="analytics-list-row analytics-list-row--header">
+        <div class="analytics-list-row-item orderby__button" ng-class="{
+          'orderby__button--reverse': isReversePredicate('_id'),
+          'orderby__button--active' : predicate == '_id'
+        }" ng-click="order('_id')">Blog referrer domain URL</div>
+        <div class="analytics-list-row-item orderby__button" ng-class="{
+          'orderby__button--reverse': isReversePredicate('hits'),
+          'orderby__button--active' : predicate == 'hits'
+        }" ng-click="order('hits')">Total Hit count</div>
+      </div>
+      <div ng-repeat="item in analytics | orderBy:predicate:reverse | filter:analyticsSearch | startFrom:currentPage*pageSize | limitTo:pageSize track by ( item._id + $index)" class="analytics-list-row">
+        <div ng-if="!item.context_url" class="analytics-list-row-item" lb-filter-domain>{{item._id.website_url}}</div>
+        <div ng-if="item.context_url" class="analytics-list-row-item" lb-filter-domain>{{item.context_url}}</div>
+        <div class="analytics-list-row-item">{{item.hits}}</div>
+        <div class="analytics-list-row-item" ng-if="!item.context_url">
+          <button class="btn btn--primary" ng-click="fetchAnalyticsDetail('year', item._id.website_url, 1, true)">View-More</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
+
 <!-- Todo Pagination (static code) -->
 <ul class="pagination">
   <li class="pagination__item" ng-class="{'pagination__item--disabled': currentPage == 0}">

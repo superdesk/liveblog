@@ -4,6 +4,9 @@ var blogId = window.hasOwnProperty('LB') ? window.LB.blog._id : '';
 
 apiHost += '/api/analytics/hit';
 
+var newUrl = new URL(contextUrl);
+var websiteUrl = newUrl.origin;
+
 var createCookie = function(name, value, days) {
   var expires = '', date = new Date();
 
@@ -34,10 +37,13 @@ var readCookie = function(name) {
 
 var hit = function() {
   var xmlhttp = new XMLHttpRequest();
-  var jsonData = JSON.stringify({
-    context_url: contextUrl,
-    blog_id: blogId
-  });
+  if (contextUrl != '') {
+    var jsonData = JSON.stringify({
+      context_url: contextUrl,
+      website_url: websiteUrl,
+      blog_id: blogId
+    });
+  }
 
   xmlhttp.open('POST', apiHost);
   xmlhttp.setRequestHeader('Content-Type', 'application/json');
