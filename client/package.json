@@ -69,7 +69,7 @@
     "load-grunt-config": "0.19.2",
     "load-grunt-tasks": "3.5.2",
     "ngtemplate-loader": "2.0.1",
-    "node-sass": "4.9.0",
+    "node-sass": "4.14.1",
     "phantomjs": "^2.1.3",
     "protractor": "5.4.2",
     "react": "^16.8.6",
